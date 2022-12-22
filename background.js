@@ -1,6 +1,9 @@
+let id;
 chrome.webRequest.onBeforeSendHeaders.addListener(
     (details) => {
-        console.log(details);
+        const url = new URL(details.url);
+        id = url.searchParams.get("solution_id");
+        console.log(id);
     },
-    { urls: ["<all_urls>"] }
+    { urls: ["*://*.codechef.com/*"] }
 );
