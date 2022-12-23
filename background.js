@@ -72,8 +72,13 @@ async function fetchResults() {
 
         Promise.all(res).then((res) => {
             res.forEach((r) => {
-                console.log(r.result_code);
                 if (r.result_code != "wait") {
+                    chrome.notifications.create("", {
+                        type: "basic",
+                        title: createTitle(r.upid, submissions),
+                        message: createMessage(r.result_code),
+                        iconUrl: "/icon.png",
+                    });
                     chrome.storage.sync.set({
                         submissions: updatedSubmissions(r.upid, submissions),
                     });
@@ -104,4 +109,36 @@ function updatedSubmissions(solution_id, submissions) {
         }
     }
     return submissions;
+}
+
+function createTitle(solution_id, submissions) {
+    let title = solution_id;
+    submissions.forEach((solution) => {
+        if (solution.solution_id === solution_id) {
+            title = `Problem: ${solution.title}`;
+        }
+    });
+    return title;
+}
+
+function createMessage(code) {
+    switch (code) {
+        case "accepted":
+            return "Verdict: Accepted!";
+        case "partial_accepted":
+            return "Verdict: Partially Accepted!";
+        case "wrong":
+            return "Verdict: Wrong!";
+        case "time":
+            return "Verdict: Time Limit Exceeded!";
+        case "runtime":
+            return "Verdict: Run time error!";
+        case "compile":
+            return "Verdict: Compile time error!";
+        case "score":
+            return "Verdict: Insufficient score!";
+        case "error":
+            return "Internal error!";
+    }
+    return "Mamma mia!";
 }
