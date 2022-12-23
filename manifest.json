@@ -3,7 +3,7 @@
     "name": "Codechef Notifier",
     "version": "1.0",
     "host_permissions": ["*://www.codechef.com/*"],
-    "permissions": ["storage", "webRequest"],
+    "permissions": ["storage", "webRequest", "notifications"],
     "background": {
         "service_worker": "background.js"
     }

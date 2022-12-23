@@ -3,10 +3,7 @@ chrome.runtime.onInstalled.addListener(() => {
     chrome.storage.sync.set({ submissions: [] });
 });
 
-//Global variables
-var x_csrf_token = null;
-
-//Listing for new submissions
+//Listening for new submissions
 chrome.webRequest.onBeforeSendHeaders.addListener(
     async (details) => {
         const url = new URL(details.url);
@@ -17,13 +14,14 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
 
         //insert if solution_id not present in storage
         if (solution_id && !isPresent(solution_id, submissions)) {
-            if (!x_csrf_token) x_csrf_token = getToken(details.requestHeaders);
             let submission = {
                 title: getTitle(details.requestHeaders),
                 solution_id: solution_id,
             };
             submissions.push(submission);
             chrome.storage.sync.set({ submissions: submissions });
+
+            fetchResults();
         }
     },
     { urls: ["*://www.codechef.com/*"] },
@@ -43,19 +41,6 @@ function isPresent(solution_id, submissions) {
     return res;
 }
 
-//Extracting x-csrf-token value
-function getToken(headers) {
-    let token = null;
-    headers.forEach((header) => {
-        switch (header.name) {
-            case "x-csrf-token":
-                token = header.value;
-                break;
-        }
-    });
-    return token;
-}
-
 //Extracting title of the problem
 function getTitle(headers) {
     let url = null;
@@ -67,4 +52,56 @@ function getTitle(headers) {
         }
     });
     return url.substring(url.lastIndexOf("/") + 1);
+}
+
+//Fetching results
+async function fetchResults() {
+    const data = await chrome.storage.sync.get(["submissions"]);
+    const submissions = data.submissions;
+
+    if (submissions.length) {
+        const res = [];
+
+        submissions.forEach((submission) => {
+            res.push(
+                getData(
+                    `https://www.codechef.com/api/ide/submit?solution_id=${submission.solution_id}`
+                )
+            );
+        });
+
+        Promise.all(res).then((res) => {
+            res.forEach((r) => {
+                console.log(r.result_code);
+                if (r.result_code != "wait") {
+                    chrome.storage.sync.set({
+                        submissions: updatedSubmissions(r.upid, submissions),
+                    });
+                }
+            });
+            if (submissions.length) {
+                setTimeout(fetchResults, 1000);
+            }
+        });
+    }
+}
+
+//Fething individual response from api
+function getData(url) {
+    return new Promise((resolve, reject) => {
+        fetch(url)
+            .then((res) => res.json())
+            .then((data) => resolve(data));
+    });
+}
+
+//Updating submissions - Removing completed submission
+function updatedSubmissions(solution_id, submissions) {
+    var i = submissions.length;
+    while (i--) {
+        if (submissions[i]["solution_id"] === solution_id) {
+            submissions.splice(i, 1);
+        }
+    }
+    return submissions;
 }
