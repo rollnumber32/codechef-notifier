@@ -1,1 +1,1 @@
-# codechefnotifier
+# codechef-notifier
