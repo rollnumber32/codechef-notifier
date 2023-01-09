@@ -1,4 +1,5 @@
 # codechef-notifier
+ **Technologies used:** Chrome extension tools
 
 ## Follow these steps to run locally
 
